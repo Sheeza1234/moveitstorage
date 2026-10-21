@@ -5,7 +5,7 @@ Two separate apps:
 | Folder | What it is | Default port | Deploy to |
 |---|---|---|---|
 | `frontend/` | Web pages only (Next.js, React, Tailwind, 3D warehouse). Forwards `/api/*` to the backend. | 3000 | Vercel |
-| `storage-portal/` | The public one-page booking website (static HTML). Sends bookings to the backend. | 8080 | Vercel (Root Directory `storage-portal`) |
+| `storage-portal/` | The public one-page booking website (React + Vite). Sends bookings to the backend. | 8080 | Vercel (Root Directory `storage-portal`, preset Vite) |
 | `backend/` | API + sign-in + SQLite database (Next.js route handlers). | 4000 | A server with a persistent disk (VPS / Railway / Render), or any host once the DB is moved to Postgres |
 
 ## Run locally
