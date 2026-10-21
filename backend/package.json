@@ -1,0 +1,36 @@
+{
+  "name": "moveit-storage-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "lint": "eslint",
+    "predev": "node scripts/gen-rpc-methods.cjs",
+    "prebuild": "node scripts/gen-rpc-methods.cjs",
+    "rpc:gen": "node scripts/gen-rpc-methods.cjs",
+    "db:reset": "node -e \"const fs=require('fs');if(fs.existsSync('data'))fs.readdirSync('data').filter(f=>/\\\\.db(-wal|-shm)?$/.test(f)).forEach(f=>fs.unlinkSync('data/'+f));console.log('local database removed')\"",
+    "seed:demo-warehouse": "node scripts/seed-demo-warehouse.mjs"
+  },
+  "dependencies": {
+    "@swc/helpers": "^0.5.23",
+    "better-sqlite3": "^12.11.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "next": "^15.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "typescript": "^5"
+  }
+}
