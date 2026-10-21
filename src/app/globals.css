@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+/* `dark:` utilities follow the app's own theme switch (<html class="dark">), not the operating system setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
+/*
+ * The app is neutral black / white, so Tailwind's default `slate` palette (which is tinted blue) is redefined as
+ * neutral greys. Every slate-* utility in the app, in light and dark mode, therefore stays free of a blue cast.
+ */
+@theme {
+  --color-slate-50: #f7f7f6;
+  --color-slate-100: #f1f1f0;
+  --color-slate-200: #e8e8e6;
+  --color-slate-300: #dededb;
+  --color-slate-400: #a5a5a6;
+  --color-slate-500: #737373;
+  --color-slate-600: #5c5c5c;
+  --color-slate-700: #404040;
+  --color-slate-800: #2c2c2c;
+  --color-slate-900: #1c1c1c;
+  --color-slate-950: #101010;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+:root, html[data-theme="light"] {
+  color-scheme: light;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #646464 32%, transparent) transparent;
+  --background: #f7f7f6;
+  --foreground: #111111;
+  --moveit-bg: #f7f7f6;
+  --moveit-panel: #ffffff;
+  --moveit-card: #ffffff;
+  --moveit-surface: #f1f1f0;
+  --moveit-surface-raised: #e8e8e6;
+  --moveit-border: #dededb;
+  --moveit-border-soft: #ececea;
+  --moveit-text: #111111;
+  --moveit-muted: #646464;
+  --moveit-dim: #606060;
+  --moveit-orange: #c94d17;       /* Primary Accent (same as the Moveit 24/7 admin console) */
+  --moveit-orange-light: #f4763b;
+  --moveit-orange-dark: #a93f10;
+  --moveit-danger: #dc2626;
+  --moveit-success: #16a34a;
+  --moveit-warning: #d97706;
+  --moveit-sidebar: #ffffff;
+  --moveit-sidebar-soft: #f1f1f0;
+  --moveit-sidebar-text: #111111;
+  --moveit-sidebar-muted: #646464;
+  --moveit-sidebar-dim: #606060;
+  --moveit-sidebar-border: #ececea;
+  --moveit-shadow-soft: 0 1.1rem 2.8rem rgb(0 0 0 / 9%);
+}
+
+:root[data-theme="dark"], html.dark, body.dark {
+  color-scheme: dark;
+  --background: #101010;
+  --foreground: #f7f8fa;
+  --moveit-bg: #101010;
+  --moveit-panel: #161616;
+  --moveit-card: #1c1c1c;
+  --moveit-surface: #242424;
+  --moveit-surface-raised: #2c2c2c;
+  --moveit-border: #343434;
+  --moveit-border-soft: #2b2b2b;
+  --moveit-text: #f7f8fa;
+  --moveit-muted: #a5a5a6;
+  --moveit-dim: #a5a5a5;
+  --moveit-orange: #c94d17;
+  --moveit-orange-light: #ef6a29;
+  --moveit-orange-dark: #a93f10;
+  --moveit-danger: #ef8585;
+  --moveit-success: #22c55e;
+  --moveit-warning: #f59e0b;
+  --moveit-sidebar: #000000;
+  --moveit-sidebar-soft: #151515;
+  --moveit-sidebar-text: #ffffff;
+  --moveit-sidebar-muted: #a5a5a6;
+  --moveit-sidebar-dim: #a5a5a5;
+  --moveit-sidebar-border: #242424;
+  --moveit-shadow-soft: 0 1.1rem 2.8rem rgb(0 0 0 / 28%);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible:not(.outline-none):not([class*="outline-none"]),
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--moveit-orange);
+  outline-offset: 2px;
+}
+
+/* browser autofill must not paint its own pale-blue background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--moveit-text);
+  transition: background-color 50000s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px transparent !important;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-moveit-bg: var(--moveit-bg);
+  --color-moveit-panel: var(--moveit-panel);
+  --color-moveit-card: var(--moveit-card);
+  --color-moveit-surface: var(--moveit-surface);
+  --color-moveit-surface-raised: var(--moveit-surface-raised);
+  --color-moveit-border: var(--moveit-border);
+  --color-moveit-border-soft: var(--moveit-border-soft);
+  --color-moveit-text: var(--moveit-text);
+  --color-moveit-muted: var(--moveit-muted);
+  --color-moveit-dim: var(--moveit-dim);
+  --color-moveit-orange: var(--moveit-orange);
+  --color-moveit-orange-light: var(--moveit-orange-light);
+  --color-moveit-orange-dark: var(--moveit-orange-dark);
+  --color-moveit-danger: var(--moveit-danger);
+  --color-moveit-success: var(--moveit-success);
+  --color-moveit-warning: var(--moveit-warning);
+  --color-moveit-sidebar: var(--moveit-sidebar);
+  --color-moveit-sidebar-soft: var(--moveit-sidebar-soft);
+  --color-moveit-sidebar-text: var(--moveit-sidebar-text);
+  --color-moveit-sidebar-muted: var(--moveit-sidebar-muted);
+  --color-moveit-sidebar-dim: var(--moveit-sidebar-dim);
+  --color-moveit-sidebar-border: var(--moveit-sidebar-border);
+  --radius-auth-sm: 0.45rem;
+  --radius-auth-md: 0.6rem;
+  --radius-auth-lg: 0.8rem;
+  --radius-auth-xl: 1rem;
+  --shadow-auth-orange: 0 1rem 2.3rem rgb(240 90 40 / 20%);
+  --shadow-admin-soft: var(--moveit-shadow-soft);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--moveit-bg);
+  color: var(--moveit-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: rgb(240 90 40 / 35%);
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--moveit-muted) 32%, transparent);
+  border: 0.18rem solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* theme toggle cross-fades one compositor snapshot instead of animating every element */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

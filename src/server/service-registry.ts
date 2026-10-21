@@ -1,0 +1,94 @@
+import { MockUserService } from "@/services/mock/user-service";
+import { MockDashboardService } from "@/services/mock/dashboard-service";
+import { MockWarehouseService } from "@/services/mock/warehouse-service";
+import { MockCustomerService } from "@/services/mock/customer-service";
+import { MockAllocationService } from "@/services/mock/allocation-service";
+import { MockInventoryService } from "@/services/mock/inventory-service";
+import { MockMovementService } from "@/services/mock/movement-service";
+import { MockContractService } from "@/services/mock/contract-service";
+import { MockDocumentService } from "@/services/mock/document-service";
+import { MockBillingService } from "@/services/mock/billing-service";
+import { MockCustomerPortalIntegrationService } from "@/services/mock/portal-integration-service";
+import { MockItemCatalogueService } from "@/services/mock/item-catalogue-service";
+import { MockPackingListService } from "@/services/mock/packing-list-service";
+import { MockCrewSheetService } from "@/services/mock/crew-sheet-service";
+import { MockPackingMaterialService } from "@/services/mock/packing-material-service";
+import { MockBoxCollectionService } from "@/services/mock/box-collection-service";
+import { MockWalkthroughDisclaimerService } from "@/services/mock/walkthrough-disclaimer-service";
+import { MockEmployeeService } from "@/services/mock/employee-service";
+import { MockBookingRequestService } from "@/services/mock/booking-request-service";
+import { auditService } from "@/services/mock/audit-service";
+import { notificationService } from "@/services/mock/notification-service";
+
+import { ServiceRegistryShape } from "@/services/registry-types";
+import { IUserService } from "@/services/interfaces/IUserService";
+import { IDashboardService } from "@/services/interfaces/IDashboardService";
+import { IWarehouseService } from "@/services/interfaces/IWarehouseService";
+import { ICustomerService } from "@/services/interfaces/ICustomerService";
+import { IAllocationService } from "@/services/interfaces/IAllocationService";
+import { IInventoryService } from "@/services/interfaces/IInventoryService";
+import { IMovementService } from "@/services/interfaces/IMovementService";
+import { IContractService } from "@/services/interfaces/IContractService";
+import { IDocumentService } from "@/services/interfaces/IDocumentService";
+import { IBillingService } from "@/services/interfaces/IBillingService";
+import { ICustomerPortalIntegrationService } from "@/services/interfaces/ICustomerPortalIntegrationService";
+import { IAuditService } from "@/services/interfaces/IAuditService";
+import { INotificationService } from "@/services/interfaces/INotificationService";
+import { IItemCatalogueService } from "@/services/interfaces/IItemCatalogueService";
+import { IPackingListService } from "@/services/interfaces/IPackingListService";
+import { ICrewSheetService } from "@/services/interfaces/ICrewSheetService";
+import { IPackingMaterialService } from "@/services/interfaces/IPackingMaterialService";
+import { IBoxCollectionService } from "@/services/interfaces/IBoxCollectionService";
+import { IWalkthroughDisclaimerService } from "@/services/interfaces/IWalkthroughDisclaimerService";
+import { IEmployeeService } from "@/services/interfaces/IEmployeeService";
+import { IBookingRequestService } from "@/services/interfaces/IBookingRequestService";
+
+class ServerServiceRegistry implements ServiceRegistryShape {
+  public dashboardService: IDashboardService;
+  public warehouseService: IWarehouseService;
+  public customerService: ICustomerService;
+  public allocationService: IAllocationService;
+  public inventoryService: IInventoryService;
+  public movementService: IMovementService;
+  public contractService: IContractService;
+  public documentService: IDocumentService;
+  public billingService: IBillingService;
+  public portalIntegrationService: ICustomerPortalIntegrationService;
+  public itemCatalogueService: IItemCatalogueService;
+  public packingListService: IPackingListService;
+  public crewSheetService: ICrewSheetService;
+  public packingMaterialService: IPackingMaterialService;
+  public boxCollectionService: IBoxCollectionService;
+  public walkthroughDisclaimerService: IWalkthroughDisclaimerService;
+  public employeeService: IEmployeeService;
+  public bookingRequestService: IBookingRequestService;
+  public auditService: IAuditService;
+  public notificationService: INotificationService;
+  public userService: IUserService;
+
+  constructor() {
+    this.dashboardService = new MockDashboardService();
+    this.warehouseService = new MockWarehouseService();
+    this.customerService = new MockCustomerService();
+    this.allocationService = new MockAllocationService();
+    this.inventoryService = new MockInventoryService();
+    this.movementService = new MockMovementService();
+    this.contractService = new MockContractService();
+    this.documentService = new MockDocumentService();
+    this.billingService = new MockBillingService();
+    this.portalIntegrationService = new MockCustomerPortalIntegrationService();
+    this.itemCatalogueService = new MockItemCatalogueService();
+    this.packingListService = new MockPackingListService();
+    this.crewSheetService = new MockCrewSheetService();
+    this.packingMaterialService = new MockPackingMaterialService();
+    this.boxCollectionService = new MockBoxCollectionService();
+    this.walkthroughDisclaimerService = new MockWalkthroughDisclaimerService();
+    this.employeeService = new MockEmployeeService();
+    this.bookingRequestService = new MockBookingRequestService();
+    this.auditService = auditService;
+    this.notificationService = notificationService;
+    this.userService = new MockUserService();
+  }
+}
+
+export { ServerServiceRegistry };

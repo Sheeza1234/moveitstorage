@@ -1,0 +1,231 @@
+{
+  "dashboardService": [
+    "getMetrics",
+    "getRecentAlerts",
+    "getRecentMovements",
+    "getWarehousesOverview"
+  ],
+  "warehouseService": [
+    "createFloor",
+    "createRack",
+    "createSlot",
+    "createWarehouse",
+    "createZone",
+    "deleteFloor",
+    "deleteRack",
+    "deleteSlot",
+    "deleteZone",
+    "getLayoutConfig",
+    "getWarehouseById",
+    "getWarehouseCapacitySummary",
+    "getWarehouses",
+    "saveLayoutConfig",
+    "updateFloor",
+    "updateRack",
+    "updateSlot",
+    "updateWarehouse",
+    "updateZone"
+  ],
+  "customerService": [
+    "createCustomer",
+    "getCustomerById",
+    "getCustomerStorageOverview",
+    "getCustomerSummary",
+    "getCustomers",
+    "updateCustomer"
+  ],
+  "allocationService": [
+    "cancelAllocation",
+    "confirmAllocation",
+    "createAllocationRequirement",
+    "findAvailableLocations",
+    "getAllocationById",
+    "getAllocationSummary",
+    "getAllocations",
+    "releaseAllocation"
+  ],
+  "inventoryService": [
+    "createInventoryRecord",
+    "getAllocationInventory",
+    "getCustomerInventory",
+    "getInventoryById",
+    "getInventoryRecords",
+    "getInventorySummary",
+    "getLocationInventory",
+    "moveInventory",
+    "recordItemsIn",
+    "recordItemsOut",
+    "updateInventoryStatus"
+  ],
+  "movementService": [
+    "createMovement",
+    "getInventoryMovements",
+    "getMovementById",
+    "getMovementSummary",
+    "getMovements"
+  ],
+  "contractService": [
+    "createContract",
+    "getAllocationContracts",
+    "getContractById",
+    "getContractSummary",
+    "getContracts",
+    "getCustomerContracts",
+    "updateContract",
+    "updateContractStatus"
+  ],
+  "documentService": [
+    "deleteDocument",
+    "getContractChecklist",
+    "getContractDocuments",
+    "getCustomerDocuments",
+    "getDocumentById",
+    "getDocumentSummary",
+    "getDocuments",
+    "updateDocumentStatus",
+    "uploadDocumentMetadata"
+  ],
+  "billingService": [
+    "cancelInvoice",
+    "createInvoice",
+    "getBillingSummary",
+    "getContractInvoices",
+    "getCustomerInvoices",
+    "getInvoiceById",
+    "getInvoicePaymentHistory",
+    "getInvoices",
+    "issueInvoice",
+    "reconcileBillingWithStorage",
+    "recordPayment",
+    "updateInvoice",
+    "voidInvoice"
+  ],
+  "portalIntegrationService": [
+    "getCustomerPortalSummary",
+    "getPortalContracts",
+    "getPortalDocuments",
+    "getPortalInvoices",
+    "syncContractStatus",
+    "syncCustomerStorageStatus",
+    "syncInvoiceStatus"
+  ],
+  "itemCatalogueService": [
+    "addCatalogueItem",
+    "deleteCatalogueItem",
+    "getCatalogueItemById",
+    "getCatalogueItems",
+    "updateCatalogueItem"
+  ],
+  "packingListService": [
+    "addExtraItem",
+    "approveExtraItem",
+    "approvePackingList",
+    "createPackingList",
+    "getPackingListById",
+    "getPackingLists",
+    "reviewExtraItem",
+    "revisePackingList",
+    "updatePackingList"
+  ],
+  "crewSheetService": [
+    "acceptJob",
+    "addEmployee",
+    "assignCrew",
+    "completeCrewSheet",
+    "completeSignatures",
+    "createCrewSheet",
+    "createEmployee",
+    "getCrewSheetById",
+    "getCrewSheets",
+    "getEmployeeById",
+    "getEmployees",
+    "submitCrewSheet",
+    "updateCrewSheet"
+  ],
+  "packingMaterialService": [
+    "allocateMaterialsForJob",
+    "approveJobMaterialList",
+    "createMaterial",
+    "getChangeRequests",
+    "getIssuancesForJob",
+    "getJobMaterialList",
+    "getLowStockAlerts",
+    "getMaterialById",
+    "getMaterialUsage",
+    "getMaterials",
+    "getReturnsForJob",
+    "issueMaterial",
+    "requestMaterialChange",
+    "returnMaterial",
+    "reviewMaterialChange",
+    "updateMaterial"
+  ],
+  "boxCollectionService": [
+    "createTracker",
+    "getCollectionHistory",
+    "getPendingAlerts",
+    "getTrackerByAllocation",
+    "getTrackerByCustomer",
+    "getTrackerById",
+    "getTrackers",
+    "recordCollection",
+    "scheduleNextCollection"
+  ],
+  "walkthroughDisclaimerService": [
+    "completeDisclaimer",
+    "createDisclaimer",
+    "getDisclaimerByCrewSheet",
+    "getDisclaimerByCustomer",
+    "getDisclaimerById",
+    "getDisclaimers",
+    "recordDamage",
+    "recordMissingItem",
+    "signDisclaimer",
+    "updateChecklist"
+  ],
+  "employeeService": [
+    "assignJobToEmployee",
+    "createEmployee",
+    "deleteDocument",
+    "getEmployeeById",
+    "getEmployeeDocuments",
+    "getEmployees",
+    "getExpiringDocumentsAlerts",
+    "getTeamLeaders",
+    "toggleTeamLeaderEligibility",
+    "updateEmployee",
+    "uploadDocument"
+  ],
+  "bookingRequestService": [
+    "getBookingRequestById",
+    "getBookingRequestSummary",
+    "getBookingRequests",
+    "submitBookingRequest",
+    "updateBookingRequest"
+  ],
+  "auditService": [
+    "getAuditEvents",
+    "getAuditEventsByEntity",
+    "getAuditSummary",
+    "getRecentActivity",
+    "recordEvent"
+  ],
+  "notificationService": [
+    "addNotification",
+    "evaluateOperationalAlerts",
+    "getNotificationById",
+    "getNotificationSummary",
+    "getNotifications",
+    "getUnreadCount",
+    "getUnreadNotifications",
+    "markAllAsRead",
+    "markAsRead"
+  ],
+  "userService": [
+    "createUser",
+    "deleteUser",
+    "listUsers",
+    "resetPassword",
+    "updateUser"
+  ]
+}
