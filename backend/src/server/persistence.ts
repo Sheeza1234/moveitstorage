@@ -112,7 +112,7 @@ export class Persistence {
       await this.store.markInitialised(seed);
     } else {
       this.apply(snap);
-      await this.store.write(this.diff(true));
+      this.diff(true); // memory now equals the database (shared with other instances): nothing to write
     }
   }
 

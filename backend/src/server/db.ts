@@ -128,56 +128,66 @@ function chunks<T>(rows: T[]): T[][] {
 
 function openPostgres(url: string): PostgresStore {
   // prepare:false keeps this working through Supabase's pooled (pgbouncer, transaction mode) connection string
-  const sql = postgres(url, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require", onnotice: () => {} });
+  const sql = postgres(url, { prepare: false, max: 1, idle_timeout: 20, connect_timeout: 15, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require", onnotice: () => {}, debug: process.env.MOVEIT_PG_DEBUG ? (_c, q) => console.log(`[moveit-pg ${new Date().toISOString().slice(11, 23)}]`, String(q).replace(/\s+/g, " ").slice(0, 90)) : undefined });
   let schema: Promise<void> | null = null;
+  // one round trip: the database can be far from the server (e.g. Vercel -> Singapore), so every query counts
   const ensureSchema = () =>
-    (schema ??= (async () => {
-      await sql`CREATE TABLE IF NOT EXISTS objects (kind TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (kind, id))`;
-      await sql`CREATE TABLE IF NOT EXISTS arrays (name TEXT NOT NULL, pos INTEGER NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (name, pos))`;
-      await sql`CREATE TABLE IF NOT EXISTS array_names (name TEXT PRIMARY KEY)`;
-      await sql`CREATE TABLE IF NOT EXISTS blobs (name TEXT PRIMARY KEY, data TEXT NOT NULL)`;
-      await sql`CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
-    })().catch((e) => {
-      schema = null;
-      throw e;
-    }));
+    (schema ??= sql
+      .unsafe(
+        `CREATE TABLE IF NOT EXISTS objects (kind TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (kind, id));
+         CREATE TABLE IF NOT EXISTS arrays (name TEXT NOT NULL, pos INTEGER NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (name, pos));
+         CREATE TABLE IF NOT EXISTS array_names (name TEXT PRIMARY KEY);
+         CREATE TABLE IF NOT EXISTS blobs (name TEXT PRIMARY KEY, data TEXT NOT NULL);
+         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`
+      )
+      .then(() => undefined)
+      .catch((e) => {
+        schema = null;
+        throw e;
+      }));
 
   return {
     kind: "postgres",
     async load() {
       await ensureSchema();
-      const [meta, objects, names, arrays, blobs] = await Promise.all([
-        sql<{ value: string }[]>`SELECT value FROM meta WHERE key='initialised'`,
-        sql<Snapshot["objects"]>`SELECT kind,id,data FROM objects`,
-        sql<{ name: string }[]>`SELECT name FROM array_names`,
-        sql<Snapshot["arrays"]>`SELECT name,kind,id FROM arrays ORDER BY name,pos`,
-        sql<Snapshot["blobs"]>`SELECT name,data FROM blobs`,
-      ]);
-      return { initialised: meta.length > 0, objects: [...objects], arrayNames: names.map((r) => r.name), arrays: [...arrays], blobs: [...blobs] };
+      // One statement on one connection: parallel queries stall behind Supabase's transaction pooler.
+      const [row] = await sql<{ initialised: boolean; objects: Snapshot["objects"]; names: string[]; arrays: Snapshot["arrays"]; blobs: Snapshot["blobs"] }[]>`
+        SELECT
+          EXISTS (SELECT 1 FROM meta WHERE key = 'initialised') AS initialised,
+          (SELECT COALESCE(json_agg(json_build_object('kind', kind, 'id', id, 'data', data)), '[]'::json) FROM objects) AS objects,
+          (SELECT COALESCE(json_agg(name), '[]'::json) FROM array_names) AS names,
+          (SELECT COALESCE(json_agg(json_build_object('name', name, 'kind', kind, 'id', id) ORDER BY name, pos), '[]'::json) FROM arrays) AS arrays,
+          (SELECT COALESCE(json_agg(json_build_object('name', name, 'data', data)), '[]'::json) FROM blobs) AS blobs`;
+      return { initialised: row.initialised, objects: row.objects, arrayNames: row.names, arrays: row.arrays, blobs: row.blobs };
     },
     async write(c) {
       await ensureSchema();
+      // A fixed, small number of statements per write (never one per row or per array).
       await sql.begin(async (tx) => {
         for (const part of chunks(c.upserts.map(([kind, id, data]) => ({ kind, id, data })))) {
           await tx`INSERT INTO objects ${tx(part, "kind", "id", "data")} ON CONFLICT (kind, id) DO UPDATE SET data = EXCLUDED.data`;
         }
-        for (const [kind, id] of c.removed) await tx`DELETE FROM objects WHERE kind=${kind} AND id=${id}`;
-        for (const w of c.arrayWrites) {
-          await tx`DELETE FROM arrays WHERE name=${w.name}`;
-          const rows = w.refs.map(([kind, id], pos) => ({ name: w.name, pos, kind, id }));
-          for (const part of chunks(rows)) await tx`INSERT INTO arrays ${tx(part, "name", "pos", "kind", "id")}`;
-          await tx`INSERT INTO array_names (name) VALUES (${w.name}) ON CONFLICT DO NOTHING`;
+        if (c.removed.length) {
+          const kinds = c.removed.map(([k]) => k);
+          const ids = c.removed.map(([, id]) => id);
+          await tx`DELETE FROM objects o USING unnest(${kinds}::text[], ${ids}::text[]) AS r(kind, id) WHERE o.kind = r.kind AND o.id = r.id`;
         }
-        for (const [name, data] of c.blobWrites) {
-          await tx`INSERT INTO blobs (name, data) VALUES (${name}, ${data}) ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data`;
+        if (c.arrayWrites.length) {
+          const names = c.arrayWrites.map((w) => w.name);
+          await tx`DELETE FROM arrays WHERE name = ANY(${names}::text[])`;
+          const rows = c.arrayWrites.flatMap((w) => w.refs.map(([kind, id], pos) => ({ name: w.name, pos, kind, id })));
+          for (const part of chunks(rows)) await tx`INSERT INTO arrays ${tx(part, "name", "pos", "kind", "id")}`;
+          await tx`INSERT INTO array_names ${tx(names.map((name) => ({ name })), "name")} ON CONFLICT DO NOTHING`;
+        }
+        if (c.blobWrites.length) {
+          await tx`INSERT INTO blobs ${tx(c.blobWrites.map(([name, data]) => ({ name, data })), "name", "data")} ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data`;
         }
       });
     },
     async markInitialised(seed) {
       await ensureSchema();
       const now = new Date().toISOString();
-      await sql`INSERT INTO meta (key, value) VALUES ('initialised', ${now}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
-      await sql`INSERT INTO meta (key, value) VALUES ('seed', ${seed}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
+      await sql`INSERT INTO meta (key, value) VALUES ('initialised', ${now}), ('seed', ${seed}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
     },
   };
 }
