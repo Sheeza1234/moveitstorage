@@ -141,7 +141,7 @@ export class MockUserService implements IUserService {
     user.permissions = nextPerms;
     user.status = nextStatus;
     user.updatedAt = new Date().toISOString();
-    if (nextStatus === "DISABLED") this.sessions = this.sessions.filter((s) => s.userId !== user.id);
+    if (nextStatus === "DISABLED") { const kept = this.sessions.filter((s) => s.userId !== user.id); this.sessions.splice(0, this.sessions.length, ...kept); }
     await auditService.recordEvent({
       entityType: "SECURITY",
       entityId: user.id,
@@ -163,7 +163,7 @@ export class MockUserService implements IUserService {
     user.failedAttempts = 0;
     user.lockedUntil = undefined;
     user.updatedAt = new Date().toISOString();
-    this.sessions = this.sessions.filter((s) => s.userId !== user.id); // sign the user out everywhere
+    { const kept = this.sessions.filter((s) => s.userId !== user.id); this.sessions.splice(0, this.sessions.length, ...kept); } // sign the user out everywhere
     await auditService.recordEvent({
       entityType: "SECURITY",
       entityId: user.id,
@@ -182,8 +182,8 @@ export class MockUserService implements IUserService {
     if (this.activeAdmins(user.id).length === 0 && this.activeAdmins().some((a) => a.id === user.id)) {
       throw new Error("This is the last active Super Admin and cannot be deleted.");
     }
-    this.users = this.users.filter((u) => u.id !== id);
-    this.sessions = this.sessions.filter((s) => s.userId !== id);
+    { const kept = this.users.filter((u) => u.id !== id); this.users.splice(0, this.users.length, ...kept); }
+    { const kept = this.sessions.filter((s) => s.userId !== id); this.sessions.splice(0, this.sessions.length, ...kept); }
     await auditService.recordEvent({
       entityType: "SECURITY",
       entityId: id,
@@ -225,7 +225,7 @@ export class MockUserService implements IUserService {
   }
 
   createSession(userId: string): { token: string; maxAgeSeconds: number } {
-    this.sessions = this.sessions.filter((s) => s.expiresAt > Date.now());
+    { const kept = this.sessions.filter((s) => s.expiresAt > Date.now()); this.sessions.splice(0, this.sessions.length, ...kept); }
     const token = crypto.randomBytes(32).toString("hex");
     this.sessions.push({ id: sha256(token), userId, createdAt: new Date().toISOString(), expiresAt: Date.now() + SESSION_HOURS * 3600_000 });
     return { token, maxAgeSeconds: SESSION_HOURS * 3600 };
@@ -241,7 +241,7 @@ export class MockUserService implements IUserService {
   }
 
   destroySession(token: string | undefined) {
-    if (token) this.sessions = this.sessions.filter((s) => s.id !== sha256(token));
+    if (token) { const kept = this.sessions.filter((s) => s.id !== sha256(token)); this.sessions.splice(0, this.sessions.length, ...kept); }
   }
 
   /** First start: make sure somebody can sign in. Returns a generated password when one had to be invented. */

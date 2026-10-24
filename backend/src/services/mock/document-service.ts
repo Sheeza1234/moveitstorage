@@ -50,7 +50,7 @@ export class MockDocumentService implements IDocumentService {
   private documents: CustomerDocument[] = MOCK_DOCUMENTS;
 
   async getDocuments(): Promise<CustomerDocument[]> {
-    this.documents = this.documents.map(processDocumentExpiry);
+    this.documents.splice(0, this.documents.length, ...this.documents.map(processDocumentExpiry));
     return [...this.documents];
   }
 

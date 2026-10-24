@@ -1,4 +1,4 @@
-import type Database from "better-sqlite3";
+import { isEmptyChange, type ChangeSet, type Snapshot, type Store } from "./db";
 
 /**
  * Durable state for the service layer.
@@ -40,7 +40,7 @@ export class Persistence {
   private blobSig = new Map<string, string>();
   private liveKeys = new Set<string>();
 
-  constructor(private db: Database.Database) {}
+  constructor(private store: Store) {}
 
   /** Register every array reachable from the given roots. `named` arrays (shared seeds) take precedence. */
   collect(named: Record<string, Json[]>, roots: Record<string, object>) {
@@ -86,23 +86,52 @@ export class Persistence {
     return arr.every(hasId);
   }
 
-  /** Brings memory in line with the database (or initialises the database on first run). */
+  /**
+   * Brings memory in line with the database (or initialises the database on first run).
+   * `init` is for SQLite (synchronous); `initAsync` / `reload` are for Postgres.
+   */
   init(seed: SeedMode) {
-    const initialised = this.db.prepare("SELECT value FROM meta WHERE key='initialised'").get();
-    if (!initialised) {
-      if (seed === "none") for (const t of this.tracked) t.arr.length = 0;
-      this.persist();
-      this.db.prepare("INSERT OR REPLACE INTO meta(key,value) VALUES('initialised', ?)").run(new Date().toISOString());
-      this.db.prepare("INSERT OR REPLACE INTO meta(key,value) VALUES('seed', ?)").run(seed);
-      return;
+    if (this.store.kind !== "sqlite") throw new Error("init() needs the SQLite store; use initAsync() for Postgres.");
+    const snap = this.store.load();
+    if (!snap.initialised) {
+      this.seedFresh(seed);
+      this.store.write(this.diff(true));
+      this.store.markInitialised(seed);
+    } else {
+      this.apply(snap);
+      this.store.write(this.diff(true));
     }
-    this.restore();
   }
 
-  private restore() {
-    const objects = this.db.prepare("SELECT kind,id,data FROM objects").all() as { kind: string; id: string; data: string }[];
+  async initAsync(seed: SeedMode) {
+    if (this.store.kind !== "postgres") throw new Error("initAsync() needs the Postgres store.");
+    const snap = await this.store.load();
+    if (!snap.initialised) {
+      this.seedFresh(seed);
+      await this.store.write(this.diff(true));
+      await this.store.markInitialised(seed);
+    } else {
+      this.apply(snap);
+      await this.store.write(this.diff(true));
+    }
+  }
+
+  /** Postgres is shared by every server instance: refresh memory from it before handling a request. */
+  async reload() {
+    if (this.store.kind !== "postgres") return;
+    const snap = await this.store.load();
+    if (!snap.initialised) return;
+    this.apply(snap);
+    this.diff(true); // memory now equals the database: just record that, nothing to write
+  }
+
+  private seedFresh(seed: SeedMode) {
+    if (seed === "none") for (const t of this.tracked) t.arr.length = 0;
+  }
+
+  private apply(snap: Snapshot) {
     const stored = new Map<string, Record<string, unknown>>();
-    for (const row of objects) {
+    for (const row of snap.objects) {
       const key = `${row.kind}${SEP}${row.id}`;
       const parsed = JSON.parse(row.data) as Record<string, unknown>;
       const existing = this.byKey.get(key);
@@ -117,11 +146,10 @@ export class Persistence {
     // objects created at runtime must also be known by identity
     for (const [key, obj] of stored) if (!this.kindOf.has(obj)) this.kindOf.set(obj, key.split(SEP)[0]);
 
-    const names = new Set((this.db.prepare("SELECT name FROM array_names").all() as { name: string }[]).map((r) => r.name));
-    const rows = this.db.prepare("SELECT name,kind,id FROM arrays ORDER BY name,pos").all() as { name: string; kind: string; id: string }[];
+    const names = new Set(snap.arrayNames);
     const grouped = new Map<string, { kind: string; id: string }[]>();
-    for (const r of rows) grouped.set(r.name, [...(grouped.get(r.name) ?? []), r]);
-    const blobs = new Map((this.db.prepare("SELECT name,data FROM blobs").all() as { name: string; data: string }[]).map((b) => [b.name, b.data]));
+    for (const r of snap.arrays) grouped.set(r.name, [...(grouped.get(r.name) ?? []), r]);
+    const blobs = new Map(snap.blobs.map((b) => [b.name, b.data]));
 
     for (const t of this.tracked) {
       if (blobs.has(t.name)) {
@@ -133,15 +161,21 @@ export class Persistence {
       }
       // arrays unknown to the database keep their in-code defaults and are persisted on the next write
     }
-    this.persist(true);
   }
 
   /** Writes every change since the last call (row-level for objects, order-level for arrays). */
-  persist(force = false) {
+  persist(force = false): void | Promise<void> {
+    const changes = this.diff(force);
+    if (isEmptyChange(changes)) return;
+    return this.store.write(changes);
+  }
+
+  /** Works out what changed since the last call and remembers the new state. Does not touch the database. */
+  private diff(force: boolean): ChangeSet {
     const live = new Set<string>();
-    const upserts: [string, string, string][] = [];
-    const arrayWrites: { name: string; refs: [string, string][] }[] = [];
-    const blobWrites: [string, string][] = [];
+    const upserts: ChangeSet["upserts"] = [];
+    const arrayWrites: ChangeSet["arrayWrites"] = [];
+    const blobWrites: ChangeSet["blobWrites"] = [];
 
     for (const t of this.tracked) {
       if (this.isIdArray(t.arr)) {
@@ -178,33 +212,10 @@ export class Persistence {
       }
     }
 
-    const removed = [...this.liveKeys].filter((k) => !live.has(k));
-    if (!upserts.length && !arrayWrites.length && !blobWrites.length && !removed.length) {
-      this.liveKeys = live;
-      return;
-    }
+    const removedKeys = [...this.liveKeys].filter((k) => !live.has(k));
     this.liveKeys = live;
-
-    const upObj = this.db.prepare("INSERT INTO objects(kind,id,data) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET data=excluded.data");
-    const delObj = this.db.prepare("DELETE FROM objects WHERE kind=? AND id=?");
-    const delArr = this.db.prepare("DELETE FROM arrays WHERE name=?");
-    const insArr = this.db.prepare("INSERT INTO arrays(name,pos,kind,id) VALUES(?,?,?,?)");
-    const insName = this.db.prepare("INSERT OR IGNORE INTO array_names(name) VALUES(?)");
-    const upBlob = this.db.prepare("INSERT INTO blobs(name,data) VALUES(?,?) ON CONFLICT(name) DO UPDATE SET data=excluded.data");
-
-    this.db.transaction(() => {
-      for (const [k, id, data] of upserts) upObj.run(k, id, data);
-      for (const key of removed) {
-        const [k, id] = key.split(SEP);
-        delObj.run(k, id);
-        this.objSig.delete(key);
-      }
-      for (const w of arrayWrites) {
-        delArr.run(w.name);
-        w.refs.forEach(([k, id], pos) => insArr.run(w.name, pos, k, id));
-        insName.run(w.name);
-      }
-      for (const [name, data] of blobWrites) upBlob.run(name, data);
-    })();
+    for (const key of removedKeys) this.objSig.delete(key);
+    const removed = removedKeys.map((k) => k.split(SEP) as [string, string]);
+    return { upserts, removed, arrayWrites, blobWrites };
   }
 }

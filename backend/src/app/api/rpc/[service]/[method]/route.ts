@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeRpc, encodeRpc } from "@/services/rpc-codec";
-import { getServerServices, persistBackend } from "@/server/registry";
+import { getServerServices, persistBackend, withBackend } from "@/server/registry";
 import { runAsUser } from "@/server/request-context";
 import { csrfProblem, sessionUser } from "@/server/auth";
 import { authorizeRpc } from "@/server/access";
@@ -22,7 +22,8 @@ const fail = (status: number, message: string, code?: string) => json({ ok: fals
  * interfaces are callable, the user needs access to the service's module, and the service then checks the exact action
  * with the user's own permission set.
  */
-export async function POST(req: NextRequest, ctx: { params: Promise<{ service: string; method: string }> }) {
+type Ctx = { params: Promise<{ service: string; method: string }> };
+async function handle(req: NextRequest, ctx: Ctx) {
   const { service, method } = await ctx.params;
 
   const problem = csrfProblem(req);
@@ -46,12 +47,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ service: s
   try {
     const target = (getServerServices() as unknown as Record<string, Record<string, (...a: unknown[]) => Promise<unknown>>>)[service];
     const result = await runAsUser({ id: user.id, name: user.name, role: user.role, permissions: user.permissions }, () => Promise.resolve(target[method](...args)));
-    persistBackend();
+    await persistBackend();
     return json({ ok: true, result });
   } catch (err) {
-    persistBackend(); // a failed call may still have changed state (e.g. audit entries)
+    await persistBackend(); // a failed call may still have changed state (e.g. audit entries)
     // not `instanceof`: a dev reload can load the error class twice, which would turn a denial into a 400
     if ((err as { code?: string } | null)?.code === "FORBIDDEN") return fail(403, (err as Error).message, "FORBIDDEN");
     return fail(400, err instanceof Error ? err.message : "Request failed.");
   }
 }
+
+export const POST = (req: NextRequest, ctx: Ctx) => withBackend(() => handle(req, ctx));

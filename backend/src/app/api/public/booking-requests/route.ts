@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerServices, persistBackend } from "@/server/registry";
+import { getServerServices, persistBackend, withBackend } from "@/server/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +55,7 @@ export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: cors(req) });
 }
 
-export async function POST(req: NextRequest) {
+async function handle(req: NextRequest) {
   const origin = req.headers.get("origin");
   if (origin && !ORIGINS.includes(origin)) return reply(req, { ok: false, error: "This website is not allowed to send bookings." }, 403);
 
@@ -77,9 +77,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const created = await getServerServices().bookingRequestService.submitBookingRequest({ ...parsed.data, source: "Booking portal" });
-    persistBackend();
+    await persistBackend();
     return reply(req, { ok: true, reference: created.reference, monthlyAed: created.monthlyAed, totalAed: created.totalAed });
   } catch (err) {
     return reply(req, { ok: false, error: err instanceof Error ? err.message : "Could not save your booking." }, 400);
   }
 }
+
+export const POST = (req: NextRequest) => withBackend(() => handle(req));

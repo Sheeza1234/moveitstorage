@@ -126,7 +126,7 @@ export class MockNotificationService implements INotificationService {
   }
 
   async markAllAsRead(): Promise<void> {
-    this.notifications = this.notifications.map((n) => ({ ...n, read: true }));
+    this.notifications.splice(0, this.notifications.length, ...this.notifications.map((n) => ({ ...n, read: true })));
   }
 
   async getUnreadCount(): Promise<number> {

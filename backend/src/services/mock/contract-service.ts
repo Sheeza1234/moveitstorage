@@ -47,7 +47,7 @@ export class MockContractService implements IContractService {
   private contracts: StorageContract[] = MOCK_CONTRACTS;
 
   async getContracts(): Promise<StorageContract[]> {
-    this.contracts = this.contracts.map(processContractExpiry);
+    this.contracts.splice(0, this.contracts.length, ...this.contracts.map(processContractExpiry));
     return [...this.contracts];
   }
 
